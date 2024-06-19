@@ -32,34 +32,22 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         friction: float = None,
         momentum_decay: float = None,
         momentum_stdev: float = 1.0,
-        gradient_noise: float = 0.0,
         temperature: float = 1.0,
         has_aux: bool = False,
         axis_name: Optional[str] = None,
         grad_mask: Optional[Callable[[Param], Param]] = None,
     ) -> Tuple[Any, SGNHTState]:
-    """Updates position and momentum.
+    """Updates state.
 
     Args:
-        state: `SGNHTState`.
+        state: Current state.
         batch: It will be send to `energy_fn`.
-        energy_fn: Energy function to be differentiated; it should take
-            `state.position` and `batch` and return the posterior energy value
-            as well as auxiliary information.
-        step_size: Step size, denoted by $\\sqrt{\\eta}$ in the original paper.
-            Note that `step_size**2 * train_size` corresponds to `lr` in
-            MomentumSGD.
-        friction: Friction coefficient, denoted by $\\alpha$ in the original
-            paper. For the MomentumSGD parameterization, set `momentum_decay`
-            coefficient instead.
-        momentum_decay: Set `friction` to `momentum_decay / step_size` if
-            specified. Note that `(1.0 - momentum_decay)` corresponds to
-            `momentum` in MomentumSGD.
+        energy_fn: Energy function to be differentiated.
+        step_size: Step size.
+        friction: Friction coefficient.
+        momentum_decay: Momentum decay coefficient.
         momentum_stdev: Standard deviation of momenta target distribution.
-        gradient_noise: Gradient noise coefficient, denoted by $\\beta$ in the
-            original paper.
         temperature: Temperature of joint distribution for posterior tempering.
-            Setting `temperature` to zero is equivalent to MomentumSGD.
         has_aux: It indicates whether the `energy_fn` returns a pair, with the
             first element as the main output of the energy function for
             differentiation and the second element as optional auxiliary data.
@@ -87,9 +75,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         lambda m, g, n: \
             m * (1. - step_size * state.friction / momentum_stdev**2) \
             + g * step_size \
-            + n * jnp.sqrt(
-                2. * momentum_decay * temperature
-                - gradient_noise * step_size**2 * temperature**2),
+            + n * (2. * momentum_decay * momentum_stdev**2 * temperature)**2,
         state.momentum, gradient, noise)
     position = jax.tree_util.tree_map(
         lambda p, m: p - m * step_size / momentum_stdev**2,
