@@ -83,7 +83,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
     noise = randn_like(state.rng_key, state.position)
     momentum = jax.tree_util.tree_map(
         lambda m, g, n: \
-            m * (1. - momentum_stdev**2 * momentum_decay) \
+            m * (1. - momentum_decay / momentum_stdev**2) \
             + g * step_size \
             + n * jnp.sqrt(
                 2. * momentum_decay * temperature
