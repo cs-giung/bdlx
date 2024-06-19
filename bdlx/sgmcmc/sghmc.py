@@ -1,6 +1,6 @@
 """
 Stochastic Gradient Hamiltonian Monte Carlo
-https://arxiv.org/abs/1402.4102
+https://dl.acm.org/doi/abs/10.5555/3044805.3045080
 """
 from typing import Any, Callable, NamedTuple, Optional, Tuple
 
@@ -83,14 +83,14 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
     noise = randn_like(state.rng_key, state.position)
     momentum = jax.tree_util.tree_map(
         lambda m, g, n: \
-            m * (1. - momentum_stdev * momentum_decay) \
+            m * (1. - momentum_stdev**2 * momentum_decay) \
             + g * step_size \
             + n * jnp.sqrt(
                 2. * momentum_decay * temperature
                 - gradient_noise * step_size**2 * temperature**2),
         state.momentum, gradient, noise)
     position = jax.tree_util.tree_map(
-        lambda p, m: p - m * step_size,
+        lambda p, m: p - m * step_size / momentum_stdev**2,
         state.position, momentum)
 
     return aux, SGHMCState(
