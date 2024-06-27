@@ -25,7 +25,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         batch: Batch,
         loss_fn: Callable[[Param, Batch], Any],
         learning_rate: float,
-        l2_regularizer: float,
+        l2_regularizer: float = 0.0,
         momentum: float = 0.9,
         nesterov: bool = False,
         has_aux: bool = False,
@@ -40,6 +40,9 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         loss_fn: Loss function to be differentiated.
         learning_rate: Learning rate.
         l2_regularizer: L2 regularization coefficient.
+        momentum: Momentum coefficient.
+        nesterov: It specifies whether the gradient computation incorporates the
+            Nesterov accelerated gradient method.
         has_aux: It indicates whether the `energy_fn` returns a pair, with the
             first element as the main output of the energy function for
             differentiation and the second element as optional auxiliary data.
