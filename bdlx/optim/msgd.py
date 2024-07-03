@@ -58,15 +58,18 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
 
     aux, gradient = jax.value_and_grad(
         loss_fn, argnums=0, has_aux=has_aux)(position, batch)
+    if l2_regularizer > 0:
+        gradient = jax.tree_util.tree_map(
+            lambda p, g: p * l2_regularizer + g,
+            state.position, gradient)
     if axis_name is not None:
         gradient = jax.lax.pmean(gradient, axis_name)
     if grad_mask is not None:
         gradient = grad_mask(gradient)
 
     momentum = jax.tree_util.tree_map(
-        lambda p, m, g: \
-            m * momentum + (g + p * l2_regularizer) * learning_rate,
-        state.position, state.momentum, gradient)
+        lambda m, g: m * momentum + g * learning_rate,
+        state.momentum, gradient)
     position = jax.tree_util.tree_map(
         lambda p, m: p - m,
         state.position, momentum)
