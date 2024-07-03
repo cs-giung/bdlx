@@ -76,17 +76,17 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         lambda nu, g: momentums[1] * nu + (1.0 - momentums[1]) * jnp.square(g),
         state.momentum_nu, gradient)
 
-    mu_hat = jax.tree_util.tree_map(
+    momentum_mu_hat = jax.tree_util.tree_map(
         lambda mu: mu / (1.0 - momentums[0]**(state.step + 1)),
         momentum_mu)
-    nu_hat = jax.tree_util.tree_map(
+    momentum_nu_hat = jax.tree_util.tree_map(
         lambda nu: nu / (1.0 - momentums[1]**(state.step + 1)),
         momentum_nu)
     position = jax.tree_util.tree_map(
         lambda p, mu, nu: \
             (1.0 - learning_rate * wd_regularizer) * p \
             - learning_rate * mu / (jnp.sqrt(nu) + eps),
-        state.position, mu_hat, nu_hat)
+        state.position, momentum_mu_hat, momentum_nu_hat)
 
     return aux, AdamState(
         step=state.step+1, position=position,
