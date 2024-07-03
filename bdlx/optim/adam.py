@@ -1,7 +1,6 @@
 """
 Adam: A Method for Stochastic Optimization
-- Adaptive moment estimation; https://arxiv.org/abs/1412.6980
-- Decoupled weight decay regularization; https://arxiv.org/abs/1711.05101
+https://arxiv.org/abs/1412.6980
 """
 from typing import Any, Callable, NamedTuple, Optional, Tuple
 
