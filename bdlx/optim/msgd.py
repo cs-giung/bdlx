@@ -1,5 +1,5 @@
 """
-Momentum and Nesterov Accelerated Gradient
+SGD with Momentum as well as Nesterov Accelerated Gradient
 - https://doi.org/10.1038/323533a0
 - https://zbmath.org/0535.90071
 """
@@ -53,7 +53,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         Auxiliary data and updated state.
     """
     position = jax.tree_util.tree_map(
-        lambda p, m: p + m * momentum,
+        lambda p, m: p - m * momentum,
         state.position, state.momentum) if nesterov else state.position
 
     aux, gradient = jax.value_and_grad(
@@ -65,9 +65,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
 
     momentum = jax.tree_util.tree_map(
         lambda p, m, g: \
-            m * momentum \
-            + g * learning_rate \
-            + p * learning_rate * l2_regularizer,
+            m * momentum + (g + p * l2_regularizer) * learning_rate,
         state.position, state.momentum, gradient)
     position = jax.tree_util.tree_map(
         lambda p, m: p - m,
