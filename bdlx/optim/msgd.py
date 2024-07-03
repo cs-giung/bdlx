@@ -1,7 +1,8 @@
 """
-SGD with Momentum as well as Nesterov Accelerated Gradient
-- https://doi.org/10.1038/323533a0
-- https://zbmath.org/0535.90071
+Stochastic Gradient Descent with following techniques:
+- Momentum; https://doi.org/10.1038/323533a0
+- Nesterov Accelerated Gradient; https://zbmath.org/0535.90071
+- Decoupled weight decay regularization; https://arxiv.org/abs/1711.05101
 """
 from typing import Any, Callable, NamedTuple, Optional, Tuple
 
@@ -26,6 +27,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         loss_fn: Callable[[Param, Batch], Any],
         learning_rate: float,
         l2_regularizer: float = 0.0,
+        wd_regularizer: float = 0.0,
         momentum: float = 0.9,
         nesterov: bool = False,
         has_aux: bool = False,
@@ -40,6 +42,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         loss_fn: Loss function to be differentiated.
         learning_rate: Learning rate.
         l2_regularizer: L2 regularization coefficient.
+        wd_regularizer: Decoupled weight decay regularization coefficient.
         momentum: Momentum coefficient.
         nesterov: It specifies whether the gradient computation incorporates the
             Nesterov accelerated gradient method.
@@ -71,7 +74,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         lambda m, g: m * momentum + g * learning_rate,
         state.momentum, gradient)
     position = jax.tree_util.tree_map(
-        lambda p, m: p - m,
+        lambda p, m: (1.0 - learning_rate * wd_regularizer) * p - m,
         state.position, momentum)
 
     return aux, MSGDState(
