@@ -1,8 +1,7 @@
 """
-Stochastic Gradient Descent with following techniques:
+Mini-batch Stochastic Gradient Descent with momentum techniques:
 - Momentum; https://doi.org/10.1038/323533a0
 - Nesterov Accelerated Gradient; https://zbmath.org/0535.90071
-- Decoupled weight decay regularization; https://arxiv.org/abs/1711.05101
 """
 from typing import Any, Callable, NamedTuple, Optional, Tuple
 
