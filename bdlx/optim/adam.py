@@ -55,10 +55,8 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
     Returns:
         Auxiliary data and updated state.
     """
-    position = state.position
-
     aux, gradient = jax.value_and_grad(
-        loss_fn, argnums=0, has_aux=has_aux)(position, batch)
+        loss_fn, argnums=0, has_aux=has_aux)(state.position, batch)
     if l2_regularizer > 0:
         gradient = jax.tree_util.tree_map(
             lambda p, g: p * l2_regularizer + g,
