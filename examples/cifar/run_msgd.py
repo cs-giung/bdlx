@@ -289,8 +289,7 @@ if __name__ == '__main__':
                         f'{k}: {v:.3e}' for k, v in summarized.items()))
 
                 if args.use_wandb:
-                    wandb.log(**summarized)
-
+                    wandb.log(summarized)
 
         summarized = {}
 
