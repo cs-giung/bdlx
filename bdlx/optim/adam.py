@@ -13,7 +13,6 @@ Param = Pytree
 Batch = Pytree
 
 
-
 class AdamState(NamedTuple):
     """State including position and momentums."""
     step: int
