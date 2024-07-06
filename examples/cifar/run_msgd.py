@@ -291,7 +291,7 @@ if __name__ == '__main__':
                 if args.use_wandb:
                     wandb.log(summarized)
 
-                if jnp.isnan(summarized['val/err']):
+                if jnp.isnan(summarized['trn/cross_entropy_loss']):
                     break
 
         summarized = {}
