@@ -18,6 +18,7 @@ import wandb
 
 from bdlx.optim import msgd
 from bdlx.tree_util import load, save
+from examples.imagenet2012 import image_processing
 from examples.imagenet2012.default import get_args, str2bool
 from examples.imagenet2012.input_pipeline import \
     create_trn_iter, create_val_iter
@@ -31,6 +32,16 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ckpt', default=None, type=str,
         help='initialize position from *.ckpt if specified (default: None)')
+
+    parser.add_argument(
+        '--data_root', default='~/tensorflow_datasets/', type=str,
+        help='root directory containing dataset files')
+    parser.add_argument(
+        '--data_name', default='imagenet2012', type=str,
+        help='dataset name (default: imagenet2012)')
+    parser.add_argument(
+        '--data_augmentation', default='simple', type=str,
+        help='apply data augmentation during training (default: simple)')
 
     parser.add_argument(
         '--num_samples', default=1, type=int,
@@ -89,7 +100,8 @@ if __name__ == '__main__':
     input_shape = (224, 224, 3)
     num_classes = 1000
 
-    tfds_builder = tensorflow_datasets.builder('imagenet2012')
+    tfds_builder = tensorflow_datasets.builder_from_directory(
+        os.path.join(args.data_root, args.data_name))
     image_decoder = tfds_builder.info.features['image'].decode_example
     trn_split = 'train[:99%]'
     dev_split = 'train[99%:]'
@@ -133,6 +145,24 @@ if __name__ == '__main__':
         f'It will go through {val_steps_per_epoch} steps to handle '
         f'{val_dataset_size} data for validation.')
     print_fn(log_str)
+
+    if args.data_augmentation == 'simple':
+        trn_augmentation = None
+    elif args.data_augmentation == 'colour':
+        trn_augmentation = jax.jit(jax.vmap(image_processing.TransformChain([
+            image_processing.TransformChain([
+                image_processing.RandomBrightnessTransform(0.6, 1.4),
+                image_processing.RandomContrastTransform(0.6, 1.4),
+                image_processing.RandomSaturationTransform(0.6, 1.4),
+                image_processing.RandomHueTransform(0.1),
+            ], prob=0.8),
+            image_processing.RandomGrayscaleTransform(prob=0.2),
+            image_processing.TransformChain([
+                image_processing.RandomGaussianBlurTransform(
+                    kernel_size=32, sigma=(0.1, 2.0)),], prob=0.5)])))
+    else:
+        raise NotImplementedError(
+            f'Unknown args.data_augmentation={args.data_augmentation}')
 
     # ----------------------------------------------------------------------- #
     # Model
@@ -264,12 +294,21 @@ if __name__ == '__main__':
     for sample_idx in range(1, args.num_samples + 1):
         metrics = []
         for update_idx in range(1, args.num_updates + 1):
+
+            batch = next(trn_iter)
+            if trn_augmentation:
+                batch['images'] = 255. * trn_augmentation(
+                    jax.random.split(
+                        jax.random.PRNGKey(update_idx), args.num_batch
+                    ), batch['images'].reshape(-1, 224, 224, 3) / 255.
+                ).reshape(batch['images'].shape)
+
             learning_rate = jax.device_put_replicated(
                 args.optim_lr_min + (0.5 + 0.5 * np.cos(
                     (update_idx - 1) / args.num_updates * np.pi)
                 ) * (args.optim_lr - args.optim_lr_min),
                 jax.local_devices())
-            aux, state = update_fn(state, next(trn_iter), learning_rate)
+            aux, state = update_fn(state, batch, learning_rate)
             metrics.append(aux[1])
 
             if update_idx == 1 or update_idx % 5000 == 0:
