@@ -16,6 +16,7 @@ import wandb
 
 from bdlx.optim import msgd
 from bdlx.tree_util import load, save
+from examples.cifar import image_processing
 from examples.cifar.default import get_args, str2bool
 from examples.cifar.model import ResNet20
 
@@ -34,6 +35,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data_name', default='cifar10', type=str,
         help='dataset name (default: cifar10)')
+    parser.add_argument(
+        '--data_augmentation', default='none', type=str,
+        help='apply data augmentation during training (default: none)')
 
     parser.add_argument(
         '--num_samples', default=1, type=int,
@@ -103,6 +107,27 @@ if __name__ == '__main__':
         args.data_root, args.data_name, 'train_images.npy'))[40960:]
     val_labels = np.load(os.path.join(
         args.data_root, args.data_name, 'train_labels.npy'))[40960:]
+
+    if args.data_augmentation == 'none':
+        trn_augmentation = None
+    elif args.data_augmentation == 'simple':
+        trn_augmentation = jax.jit(jax.vmap(image_processing.TransformChain([
+            image_processing.RandomCropTransform(size=32, padding=4),
+            image_processing.RandomHFlipTransform(prob=0.5)])))
+    elif args.data_augmentation == 'colour':
+        trn_augmentation = jax.jit(jax.vmap(image_processing.TransformChain([
+            image_processing.TransformChain([
+                image_processing.RandomBrightnessTransform(0.8, 1.2),
+                image_processing.RandomContrastTransform(0.8, 1.2),
+                image_processing.RandomSaturationTransform(0.8, 1.2),
+                image_processing.RandomHueTransform(0.1),
+            ], prob=0.8),
+            image_processing.RandomGrayscaleTransform(prob=0.2),
+            image_processing.RandomCropTransform(size=32, padding=4),
+            image_processing.RandomHFlipTransform(prob=0.5)])))
+    else:
+        raise NotImplementedError(
+            f'Unknown args.data_augmentation={args.data_augmentation}')
 
     # ----------------------------------------------------------------------- #
     # Model
@@ -253,6 +278,11 @@ if __name__ == '__main__':
             batch = {
                 'inputs': trn_images[batch_index],
                 'target': jax.nn.one_hot(trn_labels[batch_index], num_classes)}
+            if trn_augmentation:
+                batch['inputs'] = (trn_augmentation(
+                    jax.random.split(
+                        jax.random.PRNGKey(update_idx), args.num_batch
+                    ), batch['inputs'] / 255.) * 255.).astype(trn_images.dtype)
             batch = jax.tree_util.tree_map(
                 lambda e: e.reshape(shard_shape + e.shape[1:]), batch)
 
