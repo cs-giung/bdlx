@@ -71,7 +71,7 @@ class ResNet20x8(nn.Module):
         y = self.conv(features=128, kernel_size=(7, 7), strides=(2, 2))(x)
         y = self.norm()(y)
         y = self.relu(y)
-        y = nn.max_pool(y, window_shape=(3, 3), stride=(2, 2), padding='SAME')
+        y = nn.max_pool(y, window_shape=(3, 3), strides=(2, 2), padding='SAME')
 
         for layer_idx, num_block in enumerate([3, 3, 3]):
             _strides = (1,) if layer_idx == 0 else (2,)
