@@ -39,11 +39,10 @@ def _random_flip(image):
 
 def _random_crop(image, image_size):
     original_shape = tf.shape(image)
-    bbox = tf.constant([0.0, 0.0, 1.0, 1.0], dtype=tf.float32, shape=[1, 1, 4])
+    bbox = tf.constant([0., 0., 1., 1.], dtype=tf.float32, shape=[1, 1, 4])
     cropped_image = _distorted_bounding_box_crop(
-        image, bbox, min_object_covered=0.1,
-        aspect_ratio_range=(3.0/4.0, 4.0/3.0), area_range=(0.08, 1.0),
-        max_attempts=10)
+        image, bbox, min_object_covered=0.1, aspect_ratio_range=(3./4., 4./3.),
+        area_range=(0.2, 1.0), max_attempts=10)
     bad = _at_least_x_are_equal(original_shape, tf.shape(cropped_image), 3)
     return tf.cond(
         bad,
