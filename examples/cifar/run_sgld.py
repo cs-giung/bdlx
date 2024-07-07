@@ -311,9 +311,6 @@ if __name__ == '__main__':
                     + ', '.join(
                         f'{k}: {v:.3e}' for k, v in summarized.items()))
 
-                if args.use_wandb:
-                    wandb.log(summarized)
-
                 if jnp.isnan(summarized['trn/posterior_energy']):
                     break
 
@@ -357,6 +354,9 @@ if __name__ == '__main__':
         print_fn(
             f'[Sample {sample_idx:6d}/{args.num_samples:6d}] '
             + ', '.join(f'{k}: {v:.3e}' for k, v in summarized.items()))
+
+        if args.use_wandb:
+            wandb.log({'sample_idx': sample_idx, **summarized})
 
         if args.save:
             save(
