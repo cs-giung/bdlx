@@ -317,6 +317,9 @@ if __name__ == '__main__':
                 if jnp.isnan(summarized['trn/posterior_energy']):
                     break
 
+        if jnp.isnan(summarized['trn/posterior_energy']):
+            break
+
         summarized = {}
 
         summarized['norm'] = float(jnp.sqrt(sum(

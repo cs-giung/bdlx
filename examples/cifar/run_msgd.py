@@ -327,6 +327,9 @@ if __name__ == '__main__':
                 if jnp.isnan(summarized['trn/cross_entropy_loss']):
                     break
 
+        if jnp.isnan(summarized['trn/cross_entropy_loss']):
+            break
+
         summarized = {}
 
         summarized['norm'] = float(jnp.sqrt(sum(
