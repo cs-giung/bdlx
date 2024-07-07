@@ -25,15 +25,15 @@ if __name__ == '__main__':
     parser = ArgumentParser()
 
     parser.add_argument(
+        '--ckpt', default=None, type=str,
+        help='initialize position from *.ckpt if specified (default: None)')
+
+    parser.add_argument(
         '--data_root', default='./examples/cifar/data/', type=str,
         help='root directory containing dataset files')
     parser.add_argument(
         '--data_name', default='cifar10', type=str,
         help='dataset name (default: cifar10)')
-
-    parser.add_argument(
-        '--ckpt', default=None, type=str,
-        help='initialize position from *.ckpt if specified (default: None)')
 
     parser.add_argument(
         '--num_samples', default=1, type=int,
