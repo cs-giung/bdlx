@@ -100,8 +100,8 @@ if __name__ == '__main__':
     input_shape = (224, 224, 3)
     num_classes = 1000
 
-    tfds_builder = tensorflow_datasets.builder_from_directory(
-        os.path.join(args.data_root, args.data_name))
+    tfds_builder = tensorflow_datasets.builder(
+        args.data_name, data_dir=args.data_root)
     image_decoder = tfds_builder.info.features['image'].decode_example
     trn_split = 'train[:99%]'
     dev_split = 'train[99%:]'
