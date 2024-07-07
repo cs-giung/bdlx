@@ -269,6 +269,9 @@ if __name__ == '__main__':
                     f'trn/{k}': float(v) for k, v in jax.tree_util.tree_map(
                         lambda e: e.mean(), get_metrics(metrics)).items()}
 
+                if update_idx != 1:
+                    metrics = []
+
                 summarized['norm'] = float(jnp.sqrt(sum(
                     jnp.sum(e**2) for e in jax.tree_util.tree_leaves(
                         jax.tree_util.tree_map(
