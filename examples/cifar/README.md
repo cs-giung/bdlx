@@ -1,5 +1,10 @@
 # CIFAR
 
+This project aims to conduct a comprehensive evaluation of various optimization and sampling methods using residual networks on the CIFAR-10 and CIFAR-100 datasets ([Krizhevsky, 2009](https://www.cs.toronto.edu/~kriz/cifar.html)).
+Specifically, we followed the experimental setup detailed in [Izmailov et al. (2021)](https://arxiv.org/abs/2104.14421), where the HMC samples were publicly available from the same study.
+1. Utilizing the ResNet-20-FRN-Swish architecture, which is a residual network with 20 layers featuring projection shortcuts and filter response normalization ([He et al., 2016](https://arxiv.org/abs/1512.03385); [Singh and Krishnan, 2020](https://arxiv.org/abs/1911.09737)).
+2. Training on 40,960 examples and validating on 9,040 examples.
+
 ## CIFAR-10
 
 ### Optimization methods
@@ -25,9 +30,6 @@ Notation: Mean (Median) ± Std [Min - Max], based on 10 trials.
 ```
 
 ### Sampling methods
-
-> [!IMPORTANT]
-> The HMC samples were adopted from [Izmailov et al. (2021)](https://arxiv.org/abs/2104.14421).
 
 ```
 Notation: Mean (Median) ± Std [Min - Max], based on 10 trials (except hmc).
@@ -67,9 +69,6 @@ Notation: Mean (Median) ± Std [Min - Max], based on 10 trials.
 ```
 
 ### Sampling methods
-
-> [!IMPORTANT]
-> The HMC samples were adopted from [Izmailov et al. (2021)](https://arxiv.org/abs/2104.14421).
 
 ```
 Notation: Mean (Median) ± Std [Min - Max], based on 10 trials (except hmc).
