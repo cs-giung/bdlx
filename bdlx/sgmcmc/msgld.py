@@ -46,7 +46,6 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         smoothing: Smoothing factor for the first moment of gradients.
         bias: Bias factor for the adaptive bias term.
         temperature: Temperature of joint distribution for posterior tempering.
-            Setting `temperature` to zero is equivalent to MomentumSGD.
         has_aux: It indicates whether the `energy_fn` returns a pair, with the
             first element as the main output of the energy function for
             differentiation and the second element as optional auxiliary data.

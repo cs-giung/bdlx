@@ -41,7 +41,6 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
             as well as auxiliary information.
         step_size: Step size, denoted by $\\epsilon / 2$ in the original paper.
         temperature: Temperature of joint distribution for posterior tempering.
-            Setting `temperature` to zero is equivalent to MomentumSGD.
         has_aux: It indicates whether the `energy_fn` returns a pair, with the
             first element as the main output of the energy function for
             differentiation and the second element as optional auxiliary data.
