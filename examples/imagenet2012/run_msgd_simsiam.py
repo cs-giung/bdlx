@@ -364,14 +364,14 @@ if __name__ == '__main__':
             batch = next(trn_iter)
             if trn_augmentation:
                 batch['jmages'] = 255. * trn_augmentation(
-                    jax.random.split(
-                        jax.random.PRNGKey(update_idx + 1), args.num_batch
-                    ), batch['images'].reshape(-1, 224, 224, 6)[..., :3] / 255.
+                    jax.random.split(jax.random.split(
+                        jax.random.PRNGKey(update_idx))[0], args.num_batch),
+                    batch['images'].reshape(-1, 224, 224, 6)[..., :3] / 255.
                 ).reshape(shard_shape + (224, 224, 3))
                 batch['kmages'] = 255. * trn_augmentation(
-                    jax.random.split(
-                        jax.random.PRNGKey(update_idx + 2), args.num_batch
-                    ), batch['images'].reshape(-1, 224, 224, 6)[..., 3:] / 255.
+                    jax.random.split(jax.random.split(
+                        jax.random.PRNGKey(update_idx))[1], args.num_batch),
+                    batch['images'].reshape(-1, 224, 224, 6)[..., 3:] / 255.
                 ).reshape(shard_shape + (224, 224, 3))
 
             learning_rate = jax.device_put_replicated(
