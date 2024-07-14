@@ -175,23 +175,23 @@ if __name__ == '__main__':
             jnp.ones((1,) + input_shape))['params'],
         'mlp': {
             'proj_u': jax.random.normal(
-                jax.random.PRNGKey(args.seed), (512, 512)),
+                jax.random.PRNGKey(args.seed + 1), (512, 512)),
             'proj_u_bn_s': jnp.ones((512,)),
-            'proj_u_bn_b': jnp.ones((512,)),
+            'proj_u_bn_b': jnp.zeros((512,)),
             'proj_d': jax.random.normal(
-                jax.random.PRNGKey(args.seed), (512, 512)),
+                jax.random.PRNGKey(args.seed + 2), (512, 512)),
             'proj_d_bn_s': jnp.ones((512,)),
-            'proj_d_bn_b': jnp.ones((512,)),
+            'proj_d_bn_b': jnp.zeros((512,)),
             'proj_o': jax.random.normal(
-                jax.random.PRNGKey(args.seed), (512, 2048)),
+                jax.random.PRNGKey(args.seed + 3), (512, 2048)),
             'proj_o_bn_s': jnp.ones((2048,)),
-            'proj_o_bn_b': jnp.ones((2048,)),
+            'proj_o_bn_b': jnp.zeros((2048,)),
             'pred_h': jax.random.normal(
-                jax.random.PRNGKey(args.seed), (2048, 512)),
+                jax.random.PRNGKey(args.seed + 4), (2048, 512)),
             'pred_h_bn_s': jnp.ones((512,)),
-            'pred_h_bn_b': jnp.ones((512,)),
+            'pred_h_bn_b': jnp.zeros((512,)),
             'pred_o': jax.random.normal(
-                jax.random.PRNGKey(args.seed), (512, 2048))},
+                jax.random.PRNGKey(args.seed + 5), (512, 2048))},
         'cls': {
             'kernel': jax.random.normal(
                 jax.random.PRNGKey(args.seed), (512, num_classes)),
