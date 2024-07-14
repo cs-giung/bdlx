@@ -297,19 +297,21 @@ if __name__ == '__main__':
         """Computes cross-entropy loss."""
         logits1, z1, p1 = forward_fn(param, batch['jmages'])
         logits2, z2, p2 = forward_fn(param, batch['kmages'])
+        z1 = jax.lax.stop_gradient(z1)
+        z2 = jax.lax.stop_gradient(z2)
+        z1 = z1 / jnp.linalg.norm(z1, axis=-1, keepdims=True)
+        z2 = z2 / jnp.linalg.norm(z2, axis=-1, keepdims=True)
+        p1 = p1 / jnp.linalg.norm(p1, axis=-1, keepdims=True)
+        p2 = p2 / jnp.linalg.norm(p2, axis=-1, keepdims=True)
 
         target = jax.nn.one_hot(batch['labels'], num_classes)
         cross_entropy_loss = 0.5 * jnp.negative(
             jnp.mean(jnp.sum(target * jax.nn.log_softmax(logits1), axis=-1))
             + jnp.mean(jnp.sum(target * jax.nn.log_softmax(logits2), axis=-1)))
 
-        def contrastive_fn(p, z):
-            z = jax.lax.stop_gradient(z)
-            p = p / jnp.linalg.norm(p, axis=-1, keepdims=True)
-            z = z / jnp.linalg.norm(z, axis=-1, keepdims=True)
-            return jnp.negative(jnp.mean(jnp.sum(p * z, axis=-1)))
-        contrastive_loss = 0.5 * (
-            contrastive_fn(p1, z2) + contrastive_fn(p2, z1))
+        contrastive_loss = 0.5 * jnp.negative(
+            jnp.mean(jnp.sum(p1 * z1, axis=-1))
+            + jnp.mean(jnp.sum(p2 * z2, axis=-1)))
 
         aux = OrderedDict({
             'cross_entropy_loss': cross_entropy_loss,
