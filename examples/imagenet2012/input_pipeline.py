@@ -99,6 +99,7 @@ def create_trn_iter( # pylint: disable=too-many-arguments
         dtype: tf.DType = tf.float32,
         image_size: int = 224,
         cache: bool = True,
+        num_view: int = 1,
     ):
     """
     Create a generator that produces sharded mini-batches, ensuring consistent
@@ -106,11 +107,14 @@ def create_trn_iter( # pylint: disable=too-many-arguments
     """
     def decode_example(example):
         image = image_decoder(example['image'])
-        image = _random_crop(image, image_size)
-        image = _random_flip(image)
-        image = tf.reshape(image, [image_size, image_size, 3])
-        image = tf.cast(image, dtype=dtype)
-        _dict = {'images': image, 'labels': example['label']}
+        jmage = []
+        for _ in range(num_view):
+            kmage = _random_flip(_random_crop(image, image_size))
+            kmage = tf.reshape(kmage, [image_size, image_size, 3])
+            kmage = tf.cast(kmage, dtype=dtype)
+            jmage.append(kmage)
+        jmage = tf.stack(jmage, axis=0)
+        _dict = {'images': jmage, 'labels': example['label']}
         return _dict
 
     if cache:
