@@ -23,3 +23,15 @@ Notation: Mean (Median) ± Std [Min - Max], based on 4 trials.
 ## Appendix
 
 ### Augmentations
+
+<details>
+  <summary>simple</summary>
+
+  ![](./figures/preview_simple.png)
+</details>
+
+<details>
+  <summary>colour</summary>
+
+  ![](./figures/preview_colour.png)
+</details>
