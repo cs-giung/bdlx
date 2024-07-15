@@ -175,23 +175,23 @@ if __name__ == '__main__':
             jnp.ones((1,) + input_shape))['params'],
         'mlp': {
             'proj_u': jax.random.normal(
-                jax.random.PRNGKey(args.seed + 1), (512, 512)),
+                jax.random.PRNGKey(args.seed + 1), (512, 512)) / 512**0.5,
             'proj_u_bn_s': jnp.ones((512,)),
             'proj_u_bn_b': jnp.zeros((512,)),
             'proj_d': jax.random.normal(
-                jax.random.PRNGKey(args.seed + 2), (512, 512)),
+                jax.random.PRNGKey(args.seed + 2), (512, 512)) / 512**0.5,
             'proj_d_bn_s': jnp.ones((512,)),
             'proj_d_bn_b': jnp.zeros((512,)),
             'proj_o': jax.random.normal(
-                jax.random.PRNGKey(args.seed + 3), (512, 2048)),
+                jax.random.PRNGKey(args.seed + 3), (512, 2048)) / 512**0.5,
             'proj_o_bn_s': jnp.ones((2048,)),
             'proj_o_bn_b': jnp.zeros((2048,)),
             'pred_h': jax.random.normal(
-                jax.random.PRNGKey(args.seed + 4), (2048, 512)),
+                jax.random.PRNGKey(args.seed + 4), (2048, 512)) / 2048**0.5,
             'pred_h_bn_s': jnp.ones((512,)),
             'pred_h_bn_b': jnp.zeros((512,)),
             'pred_o': jax.random.normal(
-                jax.random.PRNGKey(args.seed + 5), (512, 2048))},
+                jax.random.PRNGKey(args.seed + 5), (512, 2048)) / 512**0.5},
         'cls': {
             'kernel': jax.random.normal(
                 jax.random.PRNGKey(args.seed), (512, num_classes)),
@@ -233,15 +233,12 @@ if __name__ == '__main__':
         inputs = inputs / pixel_s[None, None, None]
 
         x = model.apply({'params': params['ext']}, inputs)
-        logits = jax.lax.stop_gradient(x)
-        logits = logits @ params['cls']['kernel']
-        logits = logits + params['cls']['bias'][None]
+        logits = x @ params['cls']['kernel'] + params['cls']['bias'][None]
 
         if return_logits:
             return logits
 
-        z = x
-        z = z @ params['mlp']['proj_u']
+        z = x @ params['mlp']['proj_u']
         z = jax.lax.rsqrt(
             jnp.var(z, axis=-1, keepdims=True) + 1e-05
         ) * (z - jnp.mean(z, axis=-1, keepdims=True))
@@ -262,8 +259,7 @@ if __name__ == '__main__':
         z = z * params['mlp']['proj_o_bn_s'].reshape(1, -1)
         z = z + params['mlp']['proj_o_bn_b'].reshape(1, -1)
 
-        p = z
-        p = p @ params['mlp']['pred_h']
+        p = z @ params['mlp']['pred_h']
         p = jax.lax.rsqrt(
             jnp.var(p, axis=-1, keepdims=True) + 1e-05
         ) * (p - jnp.mean(p, axis=-1, keepdims=True))
@@ -297,6 +293,8 @@ if __name__ == '__main__':
         """Computes cross-entropy loss."""
         logits1, z1, p1 = forward_fn(param, batch['jmages'])
         logits2, z2, p2 = forward_fn(param, batch['kmages'])
+        logits1 = jax.lax.stop_gradient(logits1)
+        logits2 = jax.lax.stop_gradient(logits2)
         z1 = jax.lax.stop_gradient(z1)
         z2 = jax.lax.stop_gradient(z2)
         z1 = z1 / jnp.linalg.norm(z1, axis=-1, keepdims=True)
