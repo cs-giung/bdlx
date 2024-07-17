@@ -21,7 +21,7 @@ class SGLDState(NamedTuple):
     position: Pytree
 
 
-def step( # pylint: disable=too-many-arguments,too-many-locals
+def step(  # pylint: disable=too-many-arguments,too-many-locals
         state: SGLDState,
         batch: Batch,
         energy_fn: Callable[[Param, Batch], Any],
@@ -30,7 +30,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         has_aux: bool = False,
         axis_name: Optional[str] = None,
         grad_mask: Optional[Callable[[Param], Param]] = None,
-    ) -> Tuple[Any, SGLDState]:
+        ) -> Tuple[Any, SGLDState]:
     """Updates state.
 
     Args:
@@ -59,7 +59,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
 
     noise = randn_like(state.rng_key, state.position)
     position = jax.tree_util.tree_map(
-        lambda p, g, n: \
+        lambda p, g, n:
             p - g * step_size + n * jnp.sqrt(2. * step_size * temperature),
         state.position, gradient, noise)
 

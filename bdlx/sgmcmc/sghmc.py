@@ -22,7 +22,7 @@ class SGHMCState(NamedTuple):
     momentum: Pytree
 
 
-def step( # pylint: disable=too-many-arguments,too-many-locals
+def step(  # pylint: disable=too-many-arguments,too-many-locals
         state: SGHMCState,
         batch: Batch,
         energy_fn: Callable[[Param, Batch], Any],
@@ -35,7 +35,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         has_aux: bool = False,
         axis_name: Optional[str] = None,
         grad_mask: Optional[Callable[[Param], Param]] = None,
-    ) -> Tuple[Any, SGHMCState]:
+        ) -> Tuple[Any, SGHMCState]:
     """Updates state.
 
     Args:
@@ -78,9 +78,9 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
 
     noise = randn_like(state.rng_key, state.position)
     momentum = jax.tree_util.tree_map(
-        lambda m, g, n: \
-            m * (1. - momentum_decay) \
-            + g * step_size \
+        lambda m, g, n:
+            m * (1. - momentum_decay)
+            + g * step_size
             + n * jnp.sqrt(
                 2. * momentum_decay * momentum_stdev**2 * temperature
                 - gradient_noise * step_size**2 * temperature**2),

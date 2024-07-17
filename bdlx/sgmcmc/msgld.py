@@ -22,7 +22,7 @@ class MSGLDState(NamedTuple):
     momentum: Pytree
 
 
-def step( # pylint: disable=too-many-arguments,too-many-locals
+def step(  # pylint: disable=too-many-arguments,too-many-locals
         state: MSGLDState,
         batch: Batch,
         energy_fn: Callable[[Param, Batch], Any],
@@ -33,7 +33,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         has_aux: bool = False,
         axis_name: Optional[str] = None,
         grad_mask: Optional[Callable[[Param], Param]] = None,
-    ) -> Tuple[Any, MSGLDState]:
+        ) -> Tuple[Any, MSGLDState]:
     """Updates state.
 
     Args:
@@ -67,8 +67,8 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         lambda m, g: m * smoothing + g * (1. - smoothing),
         state.momentum, gradient)
     position = jax.tree_util.tree_map(
-        lambda p, m, g, n: \
-            p - step_size * (g + bias * m) \
+        lambda p, m, g, n:
+            p - step_size * (g + bias * m)
             + n * jnp.sqrt(2. * step_size * temperature),
         state.position, momentum, gradient, noise)
 
