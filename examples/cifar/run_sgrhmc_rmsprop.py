@@ -64,6 +64,9 @@ if __name__ == '__main__':
         help='variance of zero-mean Gaussian prior (default: 0.2)')
 
     parser.add_argument(
+        '--prec_init', default=1.0, type=float,
+        help='it determines initial preconditioner estimate (default: 1.0)')
+    parser.add_argument(
         '--smoothing', default=0.999, type=float,
         help='smoothing coefficient (default: 0.999)')
 
@@ -241,9 +244,13 @@ if __name__ == '__main__':
         return aux, state
 
     init_momentum = \
-        jax.tree_util.tree_map(jnp.zeros_like, init_position)
+        jax.tree_util.tree_map(
+            partial(jnp.full_like, fill_value=0.0),
+            init_position)
     init_momentum_nu = \
-        jax.tree_util.tree_map(jnp.ones_like, init_position)
+        jax.tree_util.tree_map(
+            partial(jnp.full_like, fill_value=args.prec_init),
+            init_position)
 
     state = sgrhmc_rmsprop.SGRHMCRMSPropState(
         step=0, rng_key=jax.random.PRNGKey(args.seed), position=init_position,
