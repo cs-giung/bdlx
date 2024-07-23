@@ -113,7 +113,7 @@ def create_trn_iter( # pylint: disable=too-many-arguments
             kmage = tf.reshape(kmage, [image_size, image_size, 3])
             kmage = tf.cast(kmage, dtype=dtype)
             jmage.append(kmage)
-        jmage = tf.stack(jmage, axis=0)
+        jmage = tf.concat(jmage, axis=2)
         _dict = {'images': jmage, 'labels': example['label']}
         return _dict
 
