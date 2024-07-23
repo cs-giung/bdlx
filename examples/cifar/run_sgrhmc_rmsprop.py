@@ -243,7 +243,7 @@ if __name__ == '__main__':
     init_momentum = \
         jax.tree_util.tree_map(jnp.zeros_like, init_position)
     init_momentum_nu = \
-        jax.tree_util.tree_map(jnp.zeros_like, init_position)
+        jax.tree_util.tree_map(jnp.ones_like, init_position)
 
     state = sgrhmc_rmsprop.SGRHMCRMSPropState(
         step=0, rng_key=jax.random.PRNGKey(args.seed), position=init_position,
