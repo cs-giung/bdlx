@@ -263,7 +263,7 @@ if __name__ == '__main__':
             loss_fn=loss_fn,
             learning_rate=learning_rate,
             l2_regularizer=args.optim_l2,
-            wd_regularizer=args.optim_wd,
+            wd_regularizer=args.optim_wd*learning_rate/args.optim_lr,
             momentum=args.momentum,
             nesterov=args.nesterov,
             has_aux=True, axis_name='batch', grad_mask=None)

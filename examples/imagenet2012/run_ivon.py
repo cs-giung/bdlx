@@ -270,7 +270,7 @@ if __name__ == '__main__':
             effective_sample_size=args.ess_factor*trn_dataset_size,
             learning_rate=learning_rate,
             l2_regularizer=args.optim_l2,
-            wd_regularizer=args.optim_wd,
+            wd_regularizer=args.optim_wd*learning_rate/args.optim_lr,
             momentums=(args.momentum_mu, args.momentum_nu),
             has_aux=True, axis_name='batch', grad_mask=None)
         aux[1]['lr'] = learning_rate

@@ -103,7 +103,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
 
     position = jax.tree_util.tree_map(
         lambda p, u: \
-            (1.0 - learning_rate * wd_regularizer) * p - learning_rate * u,
+            (1.0 - wd_regularizer) * p - learning_rate * u,
         state.position, updates)
 
     return aux, IVONState(

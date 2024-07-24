@@ -80,7 +80,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         momentum_nu)
     position = jax.tree_util.tree_map(
         lambda p, mu, nu: \
-            (1.0 - learning_rate * wd_regularizer) * p \
+            (1.0 - wd_regularizer) * p \
             - learning_rate * mu / (jnp.sqrt(nu) + eps),
         state.position, momentum_mu_hat, momentum_nu_hat)
 

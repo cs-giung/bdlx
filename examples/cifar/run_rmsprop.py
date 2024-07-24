@@ -238,7 +238,7 @@ if __name__ == '__main__':
             loss_fn=loss_fn,
             learning_rate=learning_rate,
             l2_regularizer=args.optim_l2,
-            wd_regularizer=args.optim_wd,
+            wd_regularizer=args.optim_wd*learning_rate/args.optim_lr,
             smoothing=args.smoothing,
             momentum=args.momentum,
             nesterov=args.nesterov,
