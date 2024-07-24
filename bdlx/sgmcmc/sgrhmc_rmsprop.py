@@ -72,14 +72,14 @@ def step(  # pylint: disable=too-many-arguments,too-many-locals
     noise = randn_like(state.rng_key, state.position)
     momentum = jax.tree_util.tree_map(
         lambda m, nu, g, n:
-            m * (1. - step_size / (nu + eps))
-            + g * step_size / jnp.sqrt(nu + eps)
+            m * (1. - step_size / jnp.sqrt(nu + eps))
+            + g * step_size / jnp.sqrt(jnp.sqrt(nu + eps))
             + n * jnp.sqrt(
-                2. * step_size / (nu + eps) * temperature
+                2. * step_size / jnp.sqrt(nu + eps) * temperature
                 - gradient_noise * step_size**2 * temperature**2),
         state.momentum, state.momentum_nu, gradient, noise)
     position = jax.tree_util.tree_map(
-        lambda p, m, nu: p - m * step_size / jnp.sqrt(nu + eps),
+        lambda p, m, nu: p - m * step_size / jnp.sqrt(jnp.sqrt(nu + eps)),
         state.position, momentum, momentum_nu)
 
     return aux, SGRHMCRMSPropState(
