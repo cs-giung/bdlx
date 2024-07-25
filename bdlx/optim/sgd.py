@@ -56,8 +56,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         gradient = grad_mask(gradient)
 
     position = jax.tree_util.tree_map(
-        lambda p, g: \
-            (1.0 - wd_regularizer) * p - learning_rate * g,
+        lambda p, g: (1.0 - wd_regularizer) * p - learning_rate * g,
         state.position, gradient)
 
     return aux, SGDState(step=state.step+1, position=position)
