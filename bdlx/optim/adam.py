@@ -6,7 +6,8 @@ from typing import Any, Callable, NamedTuple, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
-from bdlx.typing import Pytree
+from bdlx.tree_util import cast
+from bdlx.typing import DTypeLike, Pytree
 
 
 Param = Pytree
@@ -30,6 +31,7 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
         wd_regularizer: float = 0.0,
         momentums: Tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-08,
+        mu_dtype: Optional[DTypeLike] = None,
         has_aux: bool = False,
         axis_name: Optional[str] = None,
         grad_mask: Optional[Callable[[Param], Param]] = None,
@@ -83,6 +85,8 @@ def step( # pylint: disable=too-many-arguments,too-many-locals
             (1.0 - wd_regularizer) * p \
             - learning_rate * mu / (jnp.sqrt(nu) + eps),
         state.position, momentum_mu_hat, momentum_nu_hat)
+
+    momentum_mu = cast(momentum_mu, mu_dtype)
 
     return aux, AdamState(
         step=state.step+1, position=position,
