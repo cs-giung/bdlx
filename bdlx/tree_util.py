@@ -1,10 +1,18 @@
 """Utilities for handling pytree objects."""
 import pickle
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import jax
-from bdlx.typing import PRNGKeyLike, Pytree, PytreeLike
+from bdlx.typing import DTypeLike, PRNGKeyLike, Pytree, PytreeLike
+
+
+def cast(pytree: PytreeLike, dtype: Optional[DTypeLike]) -> Pytree:
+    """Cast a pytree to given dtype, skip if None."""
+    if dtype is not None:
+        return jax.tree_util.tree_map(lambda e: e.astype(dtype), pytree)
+    else:
+        return pytree
 
 
 def randn_like(rng_key: PRNGKeyLike, pytree: PytreeLike) -> Pytree:

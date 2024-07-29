@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, Union # pylint: disable=import-self
 # JAX Typing
 # https://jax.readthedocs.io/en/latest/jax.typing.html
 from jax import Array
-from jax.typing import ArrayLike
+from jax.typing import ArrayLike, DTypeLike
 
 # JAX PRNG Keys
 # https://jax.readthedocs.io/en/latest/jax.random.html
