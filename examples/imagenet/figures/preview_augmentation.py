@@ -12,8 +12,8 @@ import tensorflow
 import tensorflow_datasets
 tensorflow.random.set_seed(0) # pylint: disable=wrong-import-position
 
-from examples.imagenet2012 import image_processing
-from examples.imagenet2012.input_pipeline import create_trn_iter
+from examples.imagenet import image_processing
+from examples.imagenet.input_pipeline import create_trn_iter
 
 
 shard_shape = (jax.local_device_count(), -1)

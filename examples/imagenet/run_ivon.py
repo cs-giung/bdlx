@@ -18,11 +18,11 @@ import wandb
 
 from bdlx.optim import ivon
 from bdlx.tree_util import load, save
-from examples.imagenet2012 import image_processing
-from examples.imagenet2012.default import get_args, str2bool
-from examples.imagenet2012.input_pipeline import \
+from examples.imagenet import image_processing
+from examples.imagenet.default import get_args, str2bool
+from examples.imagenet.input_pipeline import \
     create_trn_iter, create_val_iter
-from examples.imagenet2012.model import ResNet20x8
+from examples.imagenet.model import ResNet20x8
 
 
 if __name__ == '__main__':

@@ -16,13 +16,13 @@ import tensorflow
 import tensorflow_datasets
 import wandb
 
-from bdlx.optim import msgd
+from bdlx.optim import adam
 from bdlx.tree_util import load, save
-from examples.imagenet2012 import image_processing
-from examples.imagenet2012.default import get_args, str2bool
-from examples.imagenet2012.input_pipeline import \
+from examples.imagenet import image_processing
+from examples.imagenet.default import get_args, str2bool
+from examples.imagenet.input_pipeline import \
     create_trn_iter, create_val_iter
-from examples.imagenet2012.model import ResNet20x8
+from examples.imagenet.model import ResNet20x8
 
 
 if __name__ == '__main__':
@@ -68,11 +68,11 @@ if __name__ == '__main__':
         help='regularization towards zero in decoupled manner (default: 0.0)')
 
     parser.add_argument(
-        '--momentum', default=0.9, type=float,
+        '--momentum_mu', default=0.9, type=float,
         help='momentum coefficient (default: 0.9)')
     parser.add_argument(
-        '--nesterov', default=False, type=str2bool,
-        help='use Nesterov accelerated gradient (default: False)')
+        '--momentum_nu', default=0.99999, type=float,
+        help='momentum coefficient (default: 0.99999)')
 
     parser.add_argument(
         '--use_wandb', default=False, type=str2bool,
@@ -257,24 +257,26 @@ if __name__ == '__main__':
     def update_fn(state, batch, learning_rate):
         # pylint: disable=redefined-outer-name
         """Updates state."""
-        aux, state = msgd.step(
+        aux, state = adam.step(
             state=state,
             batch=batch,
             loss_fn=loss_fn,
             learning_rate=learning_rate,
             l2_regularizer=args.optim_l2,
             wd_regularizer=args.optim_wd*learning_rate/args.optim_lr,
-            momentum=args.momentum,
-            nesterov=args.nesterov,
+            momentums=(args.momentum_mu, args.momentum_nu),
             has_aux=True, axis_name='batch', grad_mask=None)
         aux[1]['lr'] = learning_rate
         return aux, state
 
-    init_momentum = \
+    init_momentum_mu = \
+        jax.tree_util.tree_map(jnp.zeros_like, init_position)
+    init_momentum_nu = \
         jax.tree_util.tree_map(jnp.zeros_like, init_position)
 
-    state = msgd.MSGDState(
-        step=0, position=init_position, momentum=init_momentum)
+    state = adam.AdamState(
+        step=0, position=init_position,
+        momentum_mu=init_momentum_mu, momentum_nu=init_momentum_nu)
     state = jax.device_put_replicated(state, jax.local_devices())
 
     ens_dev_ps = np.zeros((dev_dataset_size, num_classes))

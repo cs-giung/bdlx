@@ -16,13 +16,13 @@ import tensorflow
 import tensorflow_datasets
 import wandb
 
-from bdlx.optim import adam
+from bdlx.optim import msgd
 from bdlx.tree_util import load, save
-from examples.imagenet2012 import image_processing
-from examples.imagenet2012.default import get_args, str2bool
-from examples.imagenet2012.input_pipeline import \
+from examples.imagenet import image_processing
+from examples.imagenet.default import get_args, str2bool
+from examples.imagenet.input_pipeline import \
     create_trn_iter, create_val_iter
-from examples.imagenet2012.model import ResNet20x8
+from examples.imagenet.model import ResNet20x8
 
 
 if __name__ == '__main__':
@@ -40,8 +40,8 @@ if __name__ == '__main__':
         '--data_name', default='imagenet2012', type=str,
         help='dataset name (default: imagenet2012)')
     parser.add_argument(
-        '--data_augmentation', default='simple', type=str,
-        help='apply data augmentation during training (default: simple)')
+        '--data_augmentation', default='colour', type=str,
+        help='apply data augmentation during training (default: colour)')
 
     parser.add_argument(
         '--num_samples', default=1, type=int,
@@ -68,11 +68,11 @@ if __name__ == '__main__':
         help='regularization towards zero in decoupled manner (default: 0.0)')
 
     parser.add_argument(
-        '--momentum_mu', default=0.9, type=float,
+        '--momentum', default=0.9, type=float,
         help='momentum coefficient (default: 0.9)')
     parser.add_argument(
-        '--momentum_nu', default=0.99999, type=float,
-        help='momentum coefficient (default: 0.99999)')
+        '--nesterov', default=False, type=str2bool,
+        help='use Nesterov accelerated gradient (default: False)')
 
     parser.add_argument(
         '--use_wandb', default=False, type=str2bool,
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         decoders={'image': tensorflow_datasets.decode.SkipDecoding()})
     trn_iter = create_trn_iter(
         trn_dataset, trn_dataset_size,
-        image_decoder, args.num_batch, shard_shape)
+        image_decoder, args.num_batch, shard_shape, num_view=2)
     log_str = (
         f'It will go through {trn_steps_per_epoch} steps to handle '
         f'{trn_dataset_size} data for training.')
@@ -146,9 +146,7 @@ if __name__ == '__main__':
         f'{val_dataset_size} data for validation.')
     print_fn(log_str)
 
-    if args.data_augmentation == 'simple':
-        trn_augmentation = None
-    elif args.data_augmentation == 'colour':
+    if args.data_augmentation == 'colour':
         trn_augmentation = jax.jit(jax.vmap(image_processing.TransformChain([
             image_processing.TransformChain([
                 image_processing.RandomBrightnessTransform(0.6, 1.4),
@@ -175,6 +173,25 @@ if __name__ == '__main__':
         'ext': model.init(
             jax.random.PRNGKey(args.seed),
             jnp.ones((1,) + input_shape))['params'],
+        'mlp': {
+            'proj_u': jax.random.normal(
+                jax.random.PRNGKey(args.seed + 1), (512, 512)) / 512**0.5,
+            'proj_u_bn_s': jnp.ones((512,)),
+            'proj_u_bn_b': jnp.zeros((512,)),
+            'proj_d': jax.random.normal(
+                jax.random.PRNGKey(args.seed + 2), (512, 512)) / 512**0.5,
+            'proj_d_bn_s': jnp.ones((512,)),
+            'proj_d_bn_b': jnp.zeros((512,)),
+            'proj_o': jax.random.normal(
+                jax.random.PRNGKey(args.seed + 3), (512, 2048)) / 512**0.5,
+            'proj_o_bn_s': jnp.ones((2048,)),
+            'proj_o_bn_b': jnp.zeros((2048,)),
+            'pred_h': jax.random.normal(
+                jax.random.PRNGKey(args.seed + 4), (2048, 512)) / 2048**0.5,
+            'pred_h_bn_s': jnp.ones((512,)),
+            'pred_h_bn_b': jnp.zeros((512,)),
+            'pred_o': jax.random.normal(
+                jax.random.PRNGKey(args.seed + 5), (512, 2048)) / 512**0.5},
         'cls': {
             'kernel': jax.random.normal(
                 jax.random.PRNGKey(args.seed), (512, num_classes)),
@@ -208,20 +225,52 @@ if __name__ == '__main__':
             lambda *args: np.stack(args), *jax.device_get(
                 jax.tree_util.tree_map(lambda x: x[0], device_metrics)))
 
-    def forward_fn(params, inputs):
+    def forward_fn(params, inputs, return_logits=False):
         # pylint: disable=redefined-outer-name
         """Computes categorical logits."""
         inputs = inputs / 255.0
         inputs = inputs - pixel_m[None, None, None]
         inputs = inputs / pixel_s[None, None, None]
 
-        logits = model.apply({'params': params['ext']}, inputs)
-        logits = logits @ params['cls']['kernel']
-        logits = logits + params['cls']['bias'][None]
+        x = model.apply({'params': params['ext']}, inputs)
+        logits = x @ params['cls']['kernel'] + params['cls']['bias'][None]
 
-        return logits
+        if return_logits:
+            return logits
 
-    p_forward_fn = jax.pmap(forward_fn)
+        z = x @ params['mlp']['proj_u']
+        z = jax.lax.rsqrt(
+            jnp.var(z, axis=-1, keepdims=True) + 1e-05
+        ) * (z - jnp.mean(z, axis=-1, keepdims=True))
+        z = z * params['mlp']['proj_u_bn_s'].reshape(1, -1)
+        z = z + params['mlp']['proj_u_bn_b'].reshape(1, -1)
+        z = jax.nn.relu(z)
+        z = z @ params['mlp']['proj_d']
+        z = jax.lax.rsqrt(
+            jnp.var(z, axis=-1, keepdims=True) + 1e-05
+        ) * (z - jnp.mean(z, axis=-1, keepdims=True))
+        z = z * params['mlp']['proj_d_bn_s'].reshape(1, -1)
+        z = z + params['mlp']['proj_d_bn_b'].reshape(1, -1)
+        z = jax.nn.relu(z)
+        z = z @ params['mlp']['proj_o']
+        z = jax.lax.rsqrt(
+            jnp.var(z, axis=-1, keepdims=True) + 1e-05
+        ) * (z - jnp.mean(z, axis=-1, keepdims=True))
+        z = z * params['mlp']['proj_o_bn_s'].reshape(1, -1)
+        z = z + params['mlp']['proj_o_bn_b'].reshape(1, -1)
+
+        p = z @ params['mlp']['pred_h']
+        p = jax.lax.rsqrt(
+            jnp.var(p, axis=-1, keepdims=True) + 1e-05
+        ) * (p - jnp.mean(p, axis=-1, keepdims=True))
+        p = p * params['mlp']['pred_h_bn_s'].reshape(1, -1)
+        p = p + params['mlp']['pred_h_bn_b'].reshape(1, -1)
+        p = jax.nn.relu(p)
+        p = p @ params['mlp']['pred_o']
+
+        return logits, z, p
+
+    p_forward_fn = jax.pmap(partial(forward_fn, return_logits=True))
 
     def make_predictions(
             replicated_params,
@@ -242,41 +291,54 @@ if __name__ == '__main__':
     def loss_fn(param, batch):
         # pylint: disable=redefined-outer-name
         """Computes cross-entropy loss."""
-        logits = forward_fn(param, batch['images'])
-        target = jax.nn.one_hot(batch['labels'], num_classes)
+        logits1, z1, p1 = forward_fn(param, batch['jmages'])
+        logits2, z2, p2 = forward_fn(param, batch['kmages'])
+        logits1 = jax.lax.stop_gradient(logits1)
+        logits2 = jax.lax.stop_gradient(logits2)
+        z1 = jax.lax.stop_gradient(z1)
+        z2 = jax.lax.stop_gradient(z2)
+        z1 = z1 / jnp.linalg.norm(z1, axis=-1, keepdims=True)
+        z2 = z2 / jnp.linalg.norm(z2, axis=-1, keepdims=True)
+        p1 = p1 / jnp.linalg.norm(p1, axis=-1, keepdims=True)
+        p2 = p2 / jnp.linalg.norm(p2, axis=-1, keepdims=True)
 
-        cross_entropy_loss = jnp.negative(jnp.mean(
-            jnp.sum(target * jax.nn.log_softmax(logits), axis=-1)))
+        target = jax.nn.one_hot(batch['labels'], num_classes)
+        cross_entropy_loss = 0.5 * jnp.negative(
+            jnp.mean(jnp.sum(target * jax.nn.log_softmax(logits1), axis=-1))
+            + jnp.mean(jnp.sum(target * jax.nn.log_softmax(logits2), axis=-1)))
+
+        contrastive_loss = 0.5 * jnp.negative(
+            jnp.mean(jnp.sum(p1 * z1, axis=-1))
+            + jnp.mean(jnp.sum(p2 * z2, axis=-1)))
 
         aux = OrderedDict({
-            'cross_entropy_loss': cross_entropy_loss})
+            'cross_entropy_loss': cross_entropy_loss,
+            'contrastive_loss': contrastive_loss})
 
-        return cross_entropy_loss, aux
+        return cross_entropy_loss + contrastive_loss, aux
 
     @partial(jax.pmap, axis_name='batch')
     def update_fn(state, batch, learning_rate):
         # pylint: disable=redefined-outer-name
         """Updates state."""
-        aux, state = adam.step(
+        aux, state = msgd.step(
             state=state,
             batch=batch,
             loss_fn=loss_fn,
             learning_rate=learning_rate,
             l2_regularizer=args.optim_l2,
             wd_regularizer=args.optim_wd*learning_rate/args.optim_lr,
-            momentums=(args.momentum_mu, args.momentum_nu),
+            momentum=args.momentum,
+            nesterov=args.nesterov,
             has_aux=True, axis_name='batch', grad_mask=None)
         aux[1]['lr'] = learning_rate
         return aux, state
 
-    init_momentum_mu = \
-        jax.tree_util.tree_map(jnp.zeros_like, init_position)
-    init_momentum_nu = \
+    init_momentum = \
         jax.tree_util.tree_map(jnp.zeros_like, init_position)
 
-    state = adam.AdamState(
-        step=0, position=init_position,
-        momentum_mu=init_momentum_mu, momentum_nu=init_momentum_nu)
+    state = msgd.MSGDState(
+        step=0, position=init_position, momentum=init_momentum)
     state = jax.device_put_replicated(state, jax.local_devices())
 
     ens_dev_ps = np.zeros((dev_dataset_size, num_classes))
@@ -299,11 +361,16 @@ if __name__ == '__main__':
 
             batch = next(trn_iter)
             if trn_augmentation:
-                batch['images'] = 255. * trn_augmentation(
-                    jax.random.split(
-                        jax.random.PRNGKey(update_idx), args.num_batch
-                    ), batch['images'].reshape(-1, 224, 224, 3) / 255.
-                ).reshape(batch['images'].shape)
+                batch['jmages'] = 255. * trn_augmentation(
+                    jax.random.split(jax.random.split(
+                        jax.random.PRNGKey(update_idx))[0], args.num_batch),
+                    batch['images'].reshape(-1, 224, 224, 6)[..., :3] / 255.
+                ).reshape(shard_shape + (224, 224, 3))
+                batch['kmages'] = 255. * trn_augmentation(
+                    jax.random.split(jax.random.split(
+                        jax.random.PRNGKey(update_idx))[1], args.num_batch),
+                    batch['images'].reshape(-1, 224, 224, 6)[..., 3:] / 255.
+                ).reshape(shard_shape + (224, 224, 3))
 
             learning_rate = jax.device_put_replicated(
                 args.optim_lr_min + (0.5 + 0.5 * np.cos(
