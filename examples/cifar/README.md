@@ -54,7 +54,7 @@ Notation: Mean (Median) ± Std [Min - Max], based on 8 trials (except hmc).
 # CIFAR (deprecated)
 
 > [!WARNING]
-> The following results use standard normal initialization (not He normal) and are therefore deprecated.
+> The following results use standard normal initialization (not He normal) for classification head weights and are therefore deprecated.
 
 ## CIFAR-10
 
