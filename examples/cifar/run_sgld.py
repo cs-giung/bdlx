@@ -134,7 +134,7 @@ if __name__ == '__main__':
             jax.random.PRNGKey(args.seed),
             jnp.ones((1,) + input_shape))['params'],
         'cls': {
-            'kernel': jax.random.normal(
+            'kernel': jax.nn.initializers.he_normal()(
                 jax.random.PRNGKey(args.seed), (64, num_classes)),
             'bias': jnp.zeros((num_classes,))}}
 
